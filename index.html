@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>工程報價單</title>
+<meta name="theme-color" content="#2f5d8a">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head><body>
+<header class="top"><h1>工程報價單</h1>
+<nav><button data-tab="list" class="on">報價單</button><button data-tab="edit">編輯</button><button data-tab="preview">預覽</button><button data-tab="settings">設定</button></nav></header>
+<main>
+<section id="tab-list"></section>
+<section id="tab-edit" hidden></section>
+<section id="tab-preview" hidden>
+ <div class="bar"><button id="btnPdf" class="primary">匯出／分享 PDF</button><span id="pdfMsg"></span></div>
+ <div id="pages" class="pages"></div></section>
+<section id="tab-settings" hidden></section>
+</main>
+<div id="toast"></div>
+<script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="app.js"></script>
+</body></html>

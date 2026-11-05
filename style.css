@@ -1,0 +1,41 @@
+*{box-sizing:border-box}body{margin:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Noto Sans CJK TC",sans-serif;background:#f2f4f7;color:#222;font-size:16px}
+.top{position:sticky;top:0;z-index:10;background:#2f5d8a;color:#fff;padding:8px 10px 0}
+.top h1{font-size:18px;margin:0 0 6px}
+nav{display:flex}nav button{flex:1;background:none;border:0;color:#cfe0f1;padding:10px 0;font-size:15px;border-bottom:3px solid transparent}
+nav button.on{color:#fff;border-color:#ffd54f;font-weight:700}
+main{padding:12px;max-width:820px;margin:auto}
+.card{background:#fff;border-radius:10px;padding:12px;margin-bottom:12px;box-shadow:0 1px 3px #0001}
+.card h2{font-size:16px;margin:0 0 10px;color:#2f5d8a}
+label{display:block;font-size:13px;color:#555;margin:6px 0 2px}
+input,select,textarea{width:100%;padding:9px;font-size:16px;border:1px solid #c8ced6;border-radius:6px;background:#fff;font-family:inherit}
+textarea{min-height:70px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 8px}
+button{font-family:inherit;font-size:15px;padding:9px 12px;border-radius:6px;border:1px solid #c8ced6;background:#fff}
+button.primary{background:#2f5d8a;color:#fff;border-color:#2f5d8a}
+button.danger{color:#c62828;border-color:#e5a3a3}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.line{border:1px solid #e3e6ea;border-radius:8px;padding:8px;margin:8px 0;background:#fafbfc}
+.line .t{display:flex;justify-content:space-between;font-weight:700;font-size:14px}
+.cat{background:#f2b6c6;padding:4px 8px;border-radius:4px;font-weight:700;margin-top:10px}
+.tot{position:sticky;bottom:0;background:#fff2a8;padding:10px;border-radius:8px;font-weight:700;box-shadow:0 -1px 4px #0002}
+.qitem{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.muted{color:#777;font-size:13px}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.pages{overflow:hidden}
+.pagewrap{transform-origin:0 0;margin-bottom:12px;box-shadow:0 1px 6px #0003}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:20px;display:none;z-index:99}
+table.items{width:100%;border-collapse:collapse;font-size:14px}table.items td{border-bottom:1px solid #eee;padding:4px}
+/* ===== A4 paper ===== */
+.paper{width:794px;height:1123px;background:#fff;padding:40px 38px 30px;position:relative;font-family:"Noto Sans TC","Noto Sans CJK TC","PingFang TC","Microsoft JhengHei",sans-serif;color:#000;font-size:12px;overflow:hidden}
+.paper h3{text-align:center;font-size:24px;margin:6px 0 14px;letter-spacing:2px}
+.paper table{width:100%;border-collapse:collapse;table-layout:fixed}
+.paper td{border:1px solid #000;padding:2px 5px;height:21px;line-height:16px;overflow:hidden;word-break:break-all;vertical-align:middle}
+.paper .c{text-align:center}.paper .r{text-align:right}.paper .b{font-weight:700}
+.paper .cu{background:#dce3ee}.paper .hd{background:#9dc3e6;text-align:center}
+.paper .gr{background:#d9d9d9}.paper .lb{background:#ddebf7}
+.paper .pk{background:#f2b6c6}.paper .ye{background:#fff2a8}
+.paper .nb td{border:0}.paper td.nb{border:0}
+.paper .money{display:flex;justify-content:space-between}
+.paper .pn{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px}
+.paper .logo{position:absolute;left:40px;top:30px;max-height:50px;max-width:140px}
