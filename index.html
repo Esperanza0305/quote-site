@@ -17,10 +17,11 @@
  <div id="pages" class="pages"></div>
  <div class="bar" style="flex-direction:column;align-items:stretch;padding-bottom:20px"><button id="btnPdf" class="primary" style="padding:14px;font-size:17px">匯出／分享 PDF</button><span id="pdfMsg" class="muted" style="text-align:center"></span></div></section>
 <section id="tab-settings" hidden></section>
+<section id="tab-itemdb" hidden><div class="bar"><button id="dbBack">‹ 返回</button><b>工項資料庫</b></div><div class="card"><p class="muted" style="margin-top:0">點類別展開，點工項查看或修改完整內容。單價預設 = 工班成本 ×（1＋利潤率%）</p><div id="sItems"></div></div></section>
 </main>
 <div id="toast"></div>
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
-<script>document.getElementById("pvBack").onclick=()=>tab(pvFrom)</script>
+<script>document.getElementById("pvBack").onclick=()=>tab(pvFrom);document.getElementById("dbBack").onclick=()=>tab("settings")</script>
 </body></html>

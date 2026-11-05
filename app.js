@@ -52,7 +52,7 @@ function newQuote(){return{id:uid(),created:Date.now(),c:{name:'',contact:'',pho
 // ===== tabs
 let pvFrom='list';function openPreview(from){pvFrom=from;tab('preview')}
 function tab(t){if(!$('#tab-edit').hidden)editScroll=scrollY;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==t));document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!='tab-'+t);
- if(t=='list')renderList();if(t=='edit')renderEdit();if(t=='settings')renderSettings();if(t=='preview')renderPreview();scrollTo(0,t=='edit'?editScroll:0);if(t=='edit')requestAnimationFrame(()=>scrollTo(0,editScroll))}
+ if(t=='list')renderList();if(t=='edit')renderEdit();if(t=='settings'||t=='itemdb')renderSettings();if(t=='preview')renderPreview();scrollTo(0,t=='edit'?editScroll:0);if(t=='edit')requestAnimationFrame(()=>scrollTo(0,editScroll))}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
 // ===== list
 function renderList(){const el=$('#tab-list');el.innerHTML=`<div class="card"><button class="primary" id="nq" style="width:100%">＋ 新增報價單</button></div>
@@ -110,7 +110,7 @@ function renderSettings(){const el=$('#tab-settings'),co=S.company;const G=(k,l,
  el.innerHTML=`${coHtml}
  ${defEdit?`<div class="card"><h2>報價單預設值（編輯中）</h2><label>預設稅率 %</label><input data-d="taxRate" type="number" inputmode="decimal" value="${esc(S.taxRate)}"><label>付款條件</label><input data-d="payTerms" value="${esc(S.payTerms)}"><label>備註</label><textarea data-d="notes" style="min-height:110px">${esc(S.notes)}</textarea><div class="row" style="margin-top:10px"><button class="primary" id="dSave">儲存</button><button id="dCancel">取消</button></div>`
  :`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">報價單預設值</h2><button id="dEditBtn">編輯</button></div><table class="items" style="margin-top:8px"><tr><td class="muted" style="width:6em">預設稅率</td><td>${n(S.taxRate)}%</td></tr><tr><td class="muted">付款條件</td><td>${esc(S.payTerms)||'—'}</td></tr><tr><td class="muted">備註</td><td style="white-space:pre-wrap">${esc(S.notes)||'—'}</td></tr></table>`}<p class="muted">稅率會即時套用到所有「含稅」報價單；付款條件與備註只套用到之後新增的報價單。</p></div>
- <div class="card"><h2>工項資料庫</h2><p class="muted">點類別展開，點工項查看或修改完整內容。單價預設 = 工班成本 ×（1＋利潤率%）</p><div id="sItems"></div></div>
+ <div class="card irow" id="toDb" style="padding:16px;align-items:center"><b style="color:#2f5d8a;font-size:16px">工項資料庫</b><span class="muted">共 ${S.items.length} 項　›</span></div>
  <div class="card"><h2>備份</h2><div class="row"><button id="exp">匯出備份 JSON</button><button id="imp">匯入備份</button><input type="file" id="impf" accept=".json,application/json" hidden><button class="danger" id="rst">還原預設工項</button></div></div>`;
  el.querySelectorAll('[data-s]').forEach(i=>i.oninput=()=>{const p=i.dataset.s.split('.');if(p.length==2)S[p[0]][p[1]]=i.value;else S[p[0]]=p[0]=='taxRate'?n(i.value):i.value;save()});
  if(defEdit){$('#dSave').onclick=()=>{el.querySelectorAll('[data-d]').forEach(i=>S[i.dataset.d]=i.dataset.d=='taxRate'?n(i.value):i.value);save();defEdit=false;renderSettings();toast('已儲存')};$('#dCancel').onclick=()=>{defEdit=false;renderSettings()}}else $('#dEditBtn').onclick=()=>{defEdit=true;renderSettings()};
@@ -134,7 +134,7 @@ function renderSettings(){const el=$('#tab-settings'),co=S.company;const G=(k,l,
   ov.querySelector('[data-sv]').onclick=()=>{if(!d.name.trim()){alert('請輸入工項名稱');return}if(isNew)S.items.push(d);else Object.assign(it,d);openCats.add(d.cat);save();ov.remove();draw();toast('已儲存')};
   if(!isNew)ov.querySelector('[data-dl]').onclick=()=>{if(confirm('刪除此工項？')){S.items=S.items.filter(x=>x!==it);save();ov.remove();draw()}}};
 
- draw();
+ draw();$('#toDb').onclick=()=>tab('itemdb');
 
  $('#exp').onclick=()=>{const b=new Blob([JSON.stringify({settings:S,quotes:Q},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`報價單備份_${today().replace(/\//g,'')}.json`;a.click()};
  $('#imp').onclick=()=>$('#impf').click();
