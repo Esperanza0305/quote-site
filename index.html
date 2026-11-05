@@ -2,12 +2,19 @@
 <html lang="zh-Hant"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>工程報價單</title>
-<meta name="theme-color" content="#2f5d8a">
+<meta name="theme-color" content="#8C7259">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="工程報價單"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head><body>
-<header class="top"><h1>工程報價單</h1>
+<div class="splash" id="splash"><img src="icons/icon-512.png" alt="">工程報價單</div>
+<header class="top"><h1><img src="icons/icon-192.png" alt="">工程報價單</h1>
 <nav><button data-tab="list" class="on">列表</button><button data-tab="edit">編輯</button><button data-tab="settings">設定</button></nav></header>
 <main>
 <section id="tab-list"></section>
@@ -23,5 +30,6 @@
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
+<script>setTimeout(()=>{const s=document.getElementById("splash");s.classList.add("out");setTimeout(()=>s.remove(),600)},700)</script>
 <script>document.getElementById("pvBack").onclick=()=>tab(pvFrom);document.getElementById("dbBack").onclick=()=>tab("settings")</script>
 </body></html>
