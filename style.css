@@ -39,3 +39,5 @@ table.items{width:100%;border-collapse:collapse;font-size:14px}table.items td{bo
 .paper .money{display:flex;justify-content:space-between}
 .paper .pn{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px}
 .paper .logo{position:absolute;left:40px;top:30px;max-height:50px;max-width:140px}
+.btns{margin-top:8px}.btns button{flex:1}
+input[type=date]{min-height:42px}

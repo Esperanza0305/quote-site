@@ -10,6 +10,11 @@ const SEED={ // [名稱,單位,備註]
 '清潔工程':[['細清','式','廢物清理法規定需由專業清理業者處理'],['粗清','式','']],
 '系統櫃工程':[['系統衣櫃','尺',''],['系統鞋櫃','尺',''],['系統電視櫃','尺',''],['系統書櫃','尺','']],
 '其他工程':[['冷氣安裝','式',''],['窗簾','式',''],['其他','式','']]};
+const UNITS=['式','坪','才','尺','米','公尺','平方公尺','組','樘','只','個','座','片','處','台','間','工','車','支','面','迴','樘','條','套','次'];
+const AREAS=['全室','客廳','餐廳','廚房','主臥室','次臥室','小孩房','客房','書房','和室','主臥衛浴','公共衛浴','浴室','玄關','走道','陽台','前陽台','後陽台','工作陽台','樓梯','儲藏室','更衣室','神明廳','頂樓','外牆'];
+function selOpts(list,v,blank){list=[...new Set(list)];let h=blank?'<option value="">（空白）</option>':'';if(v&&!list.includes(v))h+=`<option selected>${esc(v)}</option>`;return h+list.map(x=>`<option${x==v?' selected':''}>${esc(x)}</option>`).join('')+'<option value="__c">✎ 自訂…</option>'}
+function bindSel(sel,get,set){sel.onchange=()=>{if(sel.value=='__c'){const t=prompt('請輸入自訂內容',get()||'');if(t!==null&&t.trim()){set(t.trim());const o=document.createElement('option');o.textContent=t.trim();sel.insertBefore(o,sel.firstChild.value===''?sel.children[1]:sel.firstChild);sel.value=t.trim()}else sel.value=get()||''}else set(sel.value)}}
+const toISO=d=>(d||'').replace(/\//g,'-'),fromISO=d=>(d||'').replace(/-/g,'/');
 const $=s=>document.querySelector(s);const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const n=v=>{const x=parseFloat(v);return isFinite(x)?x:0};
@@ -20,7 +25,9 @@ function defaults(){const items=[];for(const[,c]of CATS)(SEED[c]||[]).forEach(([
  taxRate:5,payTerms:'',completion:'',validity:'',notes:'1.報價效期：本報價單之有效期限為自報價日起計一個月，逾期請重新詢價。\n2.費用範圍：本報價僅含工程施工費用；其餘如瓦斯管移位、縣市政府規費、相關技師（建築/結構/消防）簽證費及管委會規費等，均按實另計。',items};}
 let S=JSON.parse(localStorage.getItem('qs_settings')||'null')||defaults();
 let Q=JSON.parse(localStorage.getItem('qs_quotes')||'[]');
-let cur=null;
+let cur=null,editScroll=0;
+Q.forEach(q=>{if(!q.taxMode)q.taxMode=q.noTax===false?'incl':'excl';});delete S.completion;delete S.validity;
+
 const save=()=>{localStorage.setItem('qs_settings',JSON.stringify(S));localStorage.setItem('qs_quotes',JSON.stringify(Q));};
 const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',1800)};
 const today=()=>{const d=new Date();return`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`};
@@ -32,17 +39,17 @@ function chineseAmt(v){v=Math.round(v);if(!v)return'零';const d='零壹貳參�
   if(sec){s=t+b[i]+(zero?'零':'')+s;zero=sec<1000}else if(s)zero=true;i++;}
  return s.replace(/零+/g,'零').replace(/零$/,'');}
 function calc(q){const sub={};CATS.forEach(([,c])=>sub[c]=0);q.lines.forEach(l=>sub[l.cat]=(sub[l.cat]||0)+n(l.qty)*n(l.price));
- const total=Object.values(sub).reduce((a,b)=>a+b,0)-n(q.discount);const tax=q.noTax?0:Math.round(total*n(q.taxRate??S.taxRate)/100);return{sub,total,tax,grand:total+tax}}
-function newQuote(){return{id:uid(),created:Date.now(),c:{name:'',contact:'',phone:'',fax:'',project:'',site:'',date:today(),caseNo:'',orderNo:''},lines:[],discount:0,taxRate:S.taxRate,noTax:false,payTerms:S.payTerms,completion:S.completion,validity:S.validity,notes:S.notes}}
+ const total=Object.values(sub).reduce((a,b)=>a+b,0)-n(q.discount);const tax=q.taxMode=='incl'?Math.round(total*n(S.taxRate)/100):0;return{sub,total,tax,grand:total+tax}}
+function newQuote(){return{id:uid(),created:Date.now(),c:{name:'',contact:'',phone:'',fax:'',project:'',site:'',date:today(),caseNo:'',orderNo:''},lines:[],discount:0,taxMode:'excl',payTerms:S.payTerms,completion:'',notes:S.notes}}
 // ===== tabs
-function tab(t){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==t));document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!='tab-'+t);
- if(t=='list')renderList();if(t=='edit')renderEdit();if(t=='settings')renderSettings();if(t=='preview')renderPreview();scrollTo(0,0)}
+function tab(t){if(!$('#tab-edit').hidden)editScroll=scrollY;document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab==t));document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!='tab-'+t);
+ if(t=='list')renderList();if(t=='edit')renderEdit();if(t=='settings')renderSettings();if(t=='preview')renderPreview();scrollTo(0,t=='edit'?editScroll:0);if(t=='edit')requestAnimationFrame(()=>scrollTo(0,editScroll))}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
 // ===== list
 function renderList(){const el=$('#tab-list');el.innerHTML=`<div class="card"><button class="primary" id="nq" style="width:100%">＋ 新增報價單</button></div>
-<div class="card"><h2>已存報價單（${Q.length}）</h2>${Q.length?'':'<p class="muted">尚無報價單</p>'}${Q.slice().sort((a,b)=>b.created-a.created).map(q=>`<div class="qitem line"><div><b>${esc(q.c.name||'(未填客戶)')}</b> ${esc(q.c.project)}<div class="muted">${esc(q.c.date)} ・ 總計 $${fmt(calc(q).grand)}</div></div><div class="row"><button data-o="${q.id}">開啟</button><button data-cp="${q.id}">複製</button><button class="danger" data-d="${q.id}">刪</button></div></div>`).join('')}</div>`;
- $('#nq').onclick=()=>{cur=newQuote();Q.push(cur);save();tab('edit')};
- el.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{cur=Q.find(q=>q.id==b.dataset.o);tab('edit')});
+<div class="card"><h2>已存報價單（${Q.length}）</h2>${Q.length?'':'<p class="muted">尚無報價單</p>'}${Q.slice().sort((a,b)=>b.created-a.created).map(q=>`<div class="line"><div><b>${esc(q.c.name||'(未填客戶)')}</b> ${esc(q.c.project)}<div class="muted">${esc(q.c.date)} ・ 總計 $${fmt(calc(q).grand)}</div></div><div class="row btns"><button data-o="${q.id}">開啟</button><button data-cp="${q.id}">複製</button><button class="danger" data-d="${q.id}">刪除</button></div></div>`).join('')}</div>`;
+ $('#nq').onclick=()=>{cur=newQuote();Q.push(cur);save();editScroll=0;tab('edit')};
+ el.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{cur=Q.find(q=>q.id==b.dataset.o);editScroll=0;tab('edit')});
  el.querySelectorAll('[data-cp]').forEach(b=>b.onclick=()=>{const c=JSON.parse(JSON.stringify(Q.find(q=>q.id==b.dataset.cp)));c.id=uid();c.created=Date.now();c.c.date=today();Q.push(c);save();renderList();toast('已複製')});
  el.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{if(confirm('確定刪除這份報價單？')){Q=Q.filter(q=>q.id!=b.dataset.d);if(cur&&cur.id==b.dataset.d)cur=null;save();renderList()}});}
 // ===== edit
@@ -51,44 +58,54 @@ function renderEdit(){const el=$('#tab-edit');if(!cur){el.innerHTML='<div class=
  const q=cur,c=q.c;
  el.innerHTML=`<div class="card"><h2>客戶資料</h2><div class="grid2">
  ${F('c.name','客戶名稱',{v:c.name})}${F('c.contact','聯絡人',{v:c.contact})}${F('c.phone','電話',{v:c.phone,t:'tel'})}${F('c.fax','傳真',{v:c.fax,t:'tel'})}</div>
- ${F('c.project','工程名稱',{v:c.project})}${F('c.site','施工地點',{v:c.site})}<div class="grid3">${F('c.date','日期',{v:c.date})}${F('c.caseNo','案號',{v:c.caseNo})}${F('c.orderNo','單號',{v:c.orderNo})}</div></div>
+ ${F('c.project','工程名稱',{v:c.project})}${F('c.site','施工地點',{v:c.site})}<div class="grid3"><div><label>日期</label><input type="date" id="cDate" value="${toISO(c.date)}"></div>${F('c.caseNo','案號',{v:c.caseNo})}${F('c.orderNo','單號',{v:c.orderNo})}</div></div>
  <div class="card"><h2>新增工項</h2><label>工程類別</label><select id="aCat">${CATS.map(([k,c])=>`<option value="${c}">${k}、${c}</option>`).join('')}</select>
  <label>工項</label><select id="aItem"></select><button class="primary" id="aAdd" style="width:100%;margin-top:10px">＋ 加入</button></div>
  <div class="card"><h2>工項明細</h2><div id="lines"></div></div>
- <div class="card"><h2>其他</h2><div class="grid2">${F('discount','優惠／折讓（元）',{v:q.discount||'',t:'number',im:'decimal'})}${F('taxRate','稅率 %',{v:q.taxRate,t:'number',im:'decimal'})}</div>
- <label><input type="checkbox" id="noTax" style="width:auto" ${q.noTax?'checked':''}> 不含稅（稅金為 0）</label>
- ${F('payTerms','付款條件',{v:q.payTerms})}${F('completion','完工日期',{v:q.completion})}${F('validity','有效日期',{v:q.validity})}
+ <div class="card"><h2>其他</h2><div class="grid2">${F('discount','優惠／折讓（元）',{v:q.discount||'',t:'number',im:'decimal'})}<div><label>稅金</label><select id="taxMode"><option value="excl"${q.taxMode!='incl'?' selected':''}>不含稅</option><option value="incl"${q.taxMode=='incl'?' selected':''}>含稅（${n(S.taxRate)}%）</option></select></div></div>
+ ${F('payTerms','付款條件',{v:q.payTerms})}<div><label>完工日期</label><input type="date" id="cDone" value="${toISO(q.completion)}"></div>
  <label>備註</label><textarea data-f="notes">${esc(q.notes)}</textarea></div>
  <div class="tot" id="tot"></div><div style="height:8px"></div><button class="primary" style="width:100%" onclick="tab('preview')">預覽並匯出 PDF →</button>`;
  const fill=()=>{const cat=$('#aCat').value;$('#aItem').innerHTML=S.items.filter(i=>i.cat==cat).map(i=>`<option value="${i.id}">${esc(i.name)}（${esc(i.unit)}，$${fmt(priceOf(i))}）</option>`).join('')+'<option value="">（自訂工項）</option>'};
  $('#aCat').onchange=fill;fill();
  $('#aAdd').onclick=()=>{const cat=$('#aCat').value,it=S.items.find(i=>i.id==$('#aItem').value);
-  q.lines.push(it?{id:uid(),cat,name:it.name,unit:it.unit,qty:1,price:priceOf(it),area:'',note:it.note||''}:{id:uid(),cat,name:'',unit:'式',qty:1,price:0,area:'',note:''});save();drawLines();toast('已加入')};
+  q.lines.push(it?{id:uid(),cat,name:it.name,unit:it.unit,qty:1,price:priceOf(it),area:'',note:''}:{id:uid(),cat,name:'',unit:'式',qty:1,price:0,area:'',note:''});save();drawLines();toast('已加入')};
  el.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=()=>{const k=inp.dataset.f;if(k.startsWith('c.'))q.c[k.slice(2)]=inp.value;else q[k]=inp.value;save();drawTot()});
- $('#noTax').onchange=e=>{q.noTax=e.target.checked;save();drawTot()};
+ $('#taxMode').onchange=e=>{q.taxMode=e.target.value;save();drawTot()};
+ $('#cDate').onchange=e=>{q.c.date=fromISO(e.target.value);save()};$('#cDone').onchange=e=>{q.completion=fromISO(e.target.value);save()};
  drawLines();}
 function drawTot(){const t=calc(cur);$('#tot').innerHTML=`合計 $${fmt(t.total)}　稅金 $${fmt(t.tax)}<br>總計 新台幣 ${chineseAmt(t.grand)}元整（$${fmt(t.grand)}）`}
 function drawLines(){const q=cur,el=$('#lines');let h='';
  CATS.forEach(([k,c])=>{const ls=q.lines.filter(l=>l.cat==c);if(!ls.length)return;h+=`<div class="cat">${k}、${c}　<span style="float:right">$${fmt(calc(q).sub[c])}</span></div>`;
-  ls.forEach((l,i)=>{h+=`<div class="line" data-id="${l.id}"><div class="t"><span>${i+1}. </span><span class="row"><button data-up>↑</button><button class="danger" data-del>刪除</button></span></div>
-  <label>內容</label><input data-k="name" value="${esc(l.name)}"><div class="grid3"><div><label>區域</label><input data-k="area" value="${esc(l.area)}"></div><div><label>數量</label><input data-k="qty" type="number" inputmode="decimal" step="any" value="${esc(l.qty)}"></div><div><label>單位</label><input data-k="unit" value="${esc(l.unit)}"></div></div>
+  ls.forEach((l,i)=>{h+=`<div class="line" data-id="${l.id}"><div class="t"><span>${i+1}. </span><span class="row"><button data-up>↑</button><button data-down>↓</button><button class="danger" data-del>刪除</button></span></div>
+  <label>內容</label><input data-k="name" value="${esc(l.name)}"><div class="grid3"><div><label>區域</label><select data-s="area">${selOpts(AREAS,l.area,true)}</select></div><div><label>數量</label><input data-k="qty" type="number" inputmode="decimal" step="any" value="${esc(l.qty)}"></div><div><label>單位</label><select data-s="unit">${selOpts(UNITS,l.unit)}</select></div></div>
   <div class="grid2"><div><label>單價</label><input data-k="price" type="number" inputmode="decimal" step="any" value="${esc(l.price)}"></div><div><label>小計</label><input disabled data-sub value="${fmt(n(l.qty)*n(l.price))}"></div></div><label>備註</label><input data-k="note" value="${esc(l.note)}"></div>`})});
  el.innerHTML=h||'<p class="muted">尚未加入工項</p>';
  el.querySelectorAll('.line').forEach(d=>{const l=q.lines.find(x=>x.id==d.dataset.id);
   d.querySelectorAll('[data-k]').forEach(i=>i.oninput=()=>{l[i.dataset.k]=i.value;d.querySelector('[data-sub]').value=fmt(n(l.qty)*n(l.price));save();drawTot()});
+  d.querySelectorAll('[data-s]').forEach(sl=>bindSel(sl,()=>l[sl.dataset.s],v=>{l[sl.dataset.s]=v;save()}));
+  d.querySelector('[data-down]').onclick=()=>{const same=q.lines.filter(x=>x.cat==l.cat),k=same.indexOf(l);if(k<same.length-1){const a=q.lines.indexOf(same[k+1]),b=q.lines.indexOf(l);[q.lines[a],q.lines[b]]=[q.lines[b],q.lines[a]];save();drawLines()}};
   d.querySelector('[data-del]').onclick=()=>{q.lines=q.lines.filter(x=>x!==l);save();drawLines()};
   d.querySelector('[data-up]').onclick=()=>{const same=q.lines.filter(x=>x.cat==l.cat),k=same.indexOf(l);if(k>0){const a=q.lines.indexOf(same[k-1]),b=q.lines.indexOf(l);[q.lines[a],q.lines[b]]=[q.lines[b],q.lines[a]];save();drawLines()}}});
  drawTot();}
 // ===== settings
+let coEdit=false,coDraftLogo='';
 function renderSettings(){const el=$('#tab-settings'),co=S.company;const G=(k,l,v)=>`<div><label>${l}</label><input data-s="${k}" value="${esc(v)}"></div>`;
- el.innerHTML=`<div class="card"><h2>公司資料</h2><div class="grid2">${G('company.name','公司名稱',co.name)}${G('company.contact','聯絡人',co.contact)}${G('company.phone','公司電話',co.phone)}${G('company.mobile','行動電話',co.mobile)}${G('company.fax','FAX',co.fax)}${G('company.email','Email',co.email)}</div>${G('company.address','公司地址',co.address)}
- <label>Logo（選填）</label><input type="file" accept="image/*" id="logo">${co.logo?`<img src="${co.logo}" style="max-height:50px;margin-top:6px"> <button id="rmLogo">移除</button>`:''}</div>
- <div class="card"><h2>報價單預設值</h2>${G('taxRate','預設稅率 %',S.taxRate)}${G('payTerms','付款條件',S.payTerms)}${G('completion','完工日期',S.completion)}${G('validity','有效日期',S.validity)}<label>備註</label><textarea data-s="notes" style="min-height:110px">${esc(S.notes)}</textarea><p class="muted">預設值只套用到之後新增的報價單。</p></div>
+ const CF=[['name','公司名稱'],['contact','聯絡人'],['phone','公司電話'],['mobile','行動電話'],['fax','FAX'],['email','Email'],['address','公司地址']];
+ const coHtml=coEdit?`<div class="card"><h2>公司資料（編輯中）</h2>${CF.map(([k,l])=>`<div><label>${l}</label><input data-co="${k}" value="${esc(co[k])}"></div>`).join('')}
+ <label>Logo（選填）</label><input type="file" accept="image/*" id="logo">${coDraftLogo?`<img src="${coDraftLogo}" style="max-height:50px;margin-top:6px"> <button id="rmLogo">移除</button>`:''}
+ <div class="row" style="margin-top:10px"><button class="primary" id="coSave">儲存</button><button id="coCancel">取消</button></div></div>`
+ :`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">公司資料</h2><button id="coEditBtn">編輯</button></div><table class="items" style="margin-top:8px">${CF.map(([k,l])=>`<tr><td class="muted" style="width:6em">${l}</td><td>${esc(co[k])||'—'}</td></tr>`).join('')}<tr><td class="muted">Logo</td><td>${co.logo?`<img src="${co.logo}" style="max-height:40px">`:'—'}</td></tr></table></div>`;
+ el.innerHTML=`${coHtml}
+ <div class="card"><h2>報價單預設值</h2>${G('taxRate','預設稅率 %',S.taxRate)}${G('payTerms','付款條件',S.payTerms)}<label>備註</label><textarea data-s="notes" style="min-height:110px">${esc(S.notes)}</textarea><p class="muted">稅率會即時套用到所有「含稅」報價單；付款條件與備註只套用到之後新增的報價單。</p></div>
  <div class="card"><h2>工項資料庫</h2><p class="muted">單價預設 = 工班成本 ×（1＋利潤率%）</p><label>類別</label><select id="sCat">${CATS.map(([k,c])=>`<option value="${c}">${k}、${c}</option>`).join('')}</select><div id="sItems"></div><button id="sAdd" style="width:100%;margin-top:8px">＋ 新增工項</button></div>
  <div class="card"><h2>備份</h2><div class="row"><button id="exp">匯出備份 JSON</button><button id="imp">匯入備份</button><input type="file" id="impf" accept=".json,application/json" hidden><button class="danger" id="rst">還原預設工項</button></div></div>`;
  el.querySelectorAll('[data-s]').forEach(i=>i.oninput=()=>{const p=i.dataset.s.split('.');if(p.length==2)S[p[0]][p[1]]=i.value;else S[p[0]]=p[0]=='taxRate'?n(i.value):i.value;save()});
- $('#logo').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,300/img.width);c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);S.company.logo=c.toDataURL('image/png');save();renderSettings()};img.src=r.result};r.readAsDataURL(f)};
- if($('#rmLogo'))$('#rmLogo').onclick=()=>{S.company.logo='';save();renderSettings()};
+ if(coEdit){$('#coSave').onclick=()=>{el.querySelectorAll('[data-co]').forEach(i=>S.company[i.dataset.co]=i.value);S.company.logo=coDraftLogo;save();coEdit=false;renderSettings();toast('已儲存')};$('#coCancel').onclick=()=>{coEdit=false;renderSettings()}}
+ else $('#coEditBtn').onclick=()=>{coEdit=true;coDraftLogo=S.company.logo;renderSettings()};
+ if(coEdit)$('#logo').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,300/img.width);c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);coDraftLogo=c.toDataURL('image/png');keepDraft()};img.src=r.result};r.readAsDataURL(f)};
+ if($('#rmLogo'))$('#rmLogo').onclick=()=>{coDraftLogo='';keepDraft()};
+ const keepDraft=()=>{const v={};el.querySelectorAll('[data-co]').forEach(i=>v[i.dataset.co]=i.value);renderSettings();el.querySelectorAll('[data-co]').forEach(i=>i.value=v[i.dataset.co])};
  const draw=()=>{const cat=$('#sCat').value;$('#sItems').innerHTML=S.items.filter(i=>i.cat==cat).map(i=>`<div class="line" data-id="${i.id}"><input data-k="name" value="${esc(i.name)}" placeholder="工項名稱"><div class="grid3"><div><label>單位</label><input data-k="unit" value="${esc(i.unit)}"></div><div><label>工班成本</label><input data-k="cost" type="number" inputmode="decimal" value="${esc(i.cost)}"></div><div><label>利潤率%</label><input data-k="margin" type="number" inputmode="decimal" value="${esc(i.margin)}"></div></div><div class="row" style="margin-top:4px"><span class="muted" style="flex:1">單價 $<b data-p>${fmt(priceOf(i))}</b></span><button class="danger" data-del>刪除</button></div><input data-k="note" value="${esc(i.note)}" placeholder="預設備註" style="margin-top:4px"></div>`).join('');
   $('#sItems').querySelectorAll('.line').forEach(d=>{const it=S.items.find(x=>x.id==d.dataset.id);d.querySelectorAll('[data-k]').forEach(i=>i.oninput=()=>{it[i.dataset.k]=i.value;d.querySelector('[data-p]').textContent=fmt(priceOf(it));save()});d.querySelector('[data-del]').onclick=()=>{if(confirm('刪除此工項？')){S.items=S.items.filter(x=>x!==it);save();draw()}}})};
  $('#sCat').onchange=draw;draw();
@@ -117,14 +134,14 @@ function coverPage(q){const co=S.company,t=calc(q);let rows='';
  <tr class="hd"><td>項目</td><td colspan="2">工 程 種 類</td><td>數量</td><td>單位</td><td>單價</td><td>總 價</td><td>備 註</td></tr>${rows}
  <tr class="ye b"><td colspan="6">合計</td><td>${money(t.total)}</td><td></td></tr>
  <tr><td colspan="8" style="border-left:0;border-right:0"></td></tr>
- <tr class="b"><td>稅金</td><td colspan="5">${q.noTax?'未稅':n(q.taxRate)+'%'}</td><td>${money(t.tax)}</td><td></td></tr>
+ <tr class="b"><td>稅金</td><td colspan="5">${q.taxMode=='incl'?n(S.taxRate)+'%':'未稅'}</td><td>${money(t.tax)}</td><td></td></tr>
  <tr class="b"><td>總計</td><td colspan="5" class="r">新台幣　${chineseAmt(t.grand)}元整</td><td>${money(t.grand)}</td><td></td></tr>
  <tr><td colspan="8" style="border-left:0;border-right:0"></td></tr>
  <tr><td class="b" style="white-space:nowrap">付款條件:</td><td colspan="7">${esc(q.payTerms)}</td></tr>
  <tr><td class="b" style="white-space:nowrap">完工日期:</td><td colspan="7">${esc(q.completion)}</td></tr>
  <tr><td colspan="4" class="c">(用印)</td><td colspan="4" class="c">客戶簽章</td></tr>
  <tr><td colspan="4" style="height:120px"></td><td colspan="4"></td></tr>
- <tr><td class="c">有效日期</td><td colspan="7">${esc(q.validity)}</td></tr>
+ <tr><td class="c">有效日期</td><td colspan="7"></td></tr>
  <tr><td class="c">備　註:</td><td colspan="4" style="height:84px;white-space:pre-wrap;font-size:11px;line-height:14px">${esc(q.notes)}</td><td class="c" colspan="1">合約簽署日期</td><td colspan="2" class="r">年　　　月　　　日</td></tr></table>
  <div class="pn">第1頁</div></div>`}
 function detailPages(q,startNo){const host=document.createElement('div');host.style.cssText='position:absolute;left:-9999px;top:0';document.body.appendChild(host);
@@ -154,5 +171,5 @@ function fname(q){return`報價單_${(q.c.name||q.c.project||'客戶').replace(/
 $('#btnPdf').onclick=async()=>{if(!cur)return;const m=$('#pdfMsg');m.textContent='產生中…';try{const pdf=await makePdf(cur);const blob=pdf.output('blob'),name=fname(cur);const file=new File([blob],name,{type:'application/pdf'});
  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});m.textContent='';return}catch(e){if(e.name=='AbortError'){m.textContent='';return}}}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();m.textContent='已下載 '+name}catch(e){console.error(e);m.textContent='產生失敗：'+e.message}};
-window.QS={makePdf,get cur(){return cur},set cur(v){cur=v},Q,S,save,tab,chineseAmt};
+window.QS={tab,get editScroll(){return editScroll},makePdf,get cur(){return cur},set cur(v){cur=v},Q,S,save,tab,chineseAmt};
 if(Q.length)cur=Q[Q.length-1];tab('list');
