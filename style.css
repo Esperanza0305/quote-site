@@ -50,3 +50,10 @@ input.dp{cursor:pointer;background:#fff}
 .dpg button{border:0;background:none;padding:0;height:32px;border-radius:50%;font-size:13px}
 .dpg button.td{color:#2f5d8a;font-weight:700}.dpg button.sel{background:#2f5d8a;color:#fff}
 #tab-preview>.bar:first-child{padding:2px 0}
+
+.top h1{text-align:center}
+details{border-bottom:1px solid #eee}summary{padding:12px 4px;font-weight:700;cursor:pointer}
+.irow{display:flex;justify-content:space-between;padding:10px 8px 10px 16px;border-top:1px solid #f1f1f1;cursor:pointer}.irow:active{background:#eef3f8}
+.addi{width:100%;margin:6px 0 10px;border-style:dashed}
+.mov{position:fixed;inset:0;background:#0005;z-index:60;display:flex;align-items:flex-end;justify-content:center}
+.mbox{background:#fff;width:100%;max-width:560px;border-radius:14px 14px 0 0;padding:14px;max-height:90vh;overflow:auto}.mbox h2{margin:0 0 6px;font-size:17px;color:#2f5d8a}

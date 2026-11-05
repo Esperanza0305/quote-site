@@ -36,7 +36,7 @@ let Q=JSON.parse(localStorage.getItem('qs_quotes')||'[]');
 let cur=null,editScroll=0;
 Q.forEach(q=>{if(!q.taxMode)q.taxMode=q.noTax===false?'incl':'excl';});delete S.completion;delete S.validity;
 
-const save=()=>{localStorage.setItem('qs_settings',JSON.stringify(S));localStorage.setItem('qs_quotes',JSON.stringify(Q));};
+const save=()=>{if(cur)cur.updated=Date.now();localStorage.setItem('qs_settings',JSON.stringify(S));localStorage.setItem('qs_quotes',JSON.stringify(Q));};
 const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',1800)};
 const today=()=>{const d=new Date();return`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`};
 const priceOf=it=>Math.round(n(it.cost)*(1+n(it.margin)/100));
@@ -56,7 +56,7 @@ function tab(t){if(!$('#tab-edit').hidden)editScroll=scrollY;document.querySelec
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
 // ===== list
 function renderList(){const el=$('#tab-list');el.innerHTML=`<div class="card"><button class="primary" id="nq" style="width:100%">＋ 新增報價單</button></div>
-<div class="card"><h2>已存報價單（${Q.length}）</h2>${Q.length?'':'<p class="muted">尚無報價單</p>'}${Q.slice().sort((a,b)=>b.created-a.created).map(q=>`<div class="line"><div><b>${esc(q.c.name||'(未填客戶)')}</b> ${esc(q.c.project)}<div class="muted">${esc(q.c.date)} ・ 總計 $${fmt(calc(q).grand)}</div></div><div class="row btns"><button data-o="${q.id}">開啟</button><button data-cp="${q.id}">複製</button><button data-pv="${q.id}">預覽</button><button class="danger" data-d="${q.id}">刪除</button></div></div>`).join('')}</div>`;
+<div class="card"><h2>已存報價單（${Q.length}）</h2>${Q.length?'':'<p class="muted">尚無報價單</p>'}${Q.slice().sort((a,b)=>{const da=a.c.date||'',db=b.c.date||'';if(da!=db){if(!da)return 1;if(!db)return -1;return db.localeCompare(da)}return (b.updated||b.created)-(a.updated||a.created)}).map(q=>`<div class="line"><div><b>${esc(q.c.name||'(未填客戶)')}</b> ${esc(q.c.project)}<div class="muted">${esc(q.c.date)} ・ 總計 $${fmt(calc(q).grand)}</div></div><div class="row btns"><button data-o="${q.id}">開啟</button><button data-cp="${q.id}">複製</button><button data-pv="${q.id}">預覽</button><button class="danger" data-d="${q.id}">刪除</button></div></div>`).join('')}</div>`;
  $('#nq').onclick=()=>{cur=newQuote();Q.push(cur);save();editScroll=0;tab('edit')};
  el.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{cur=Q.find(q=>q.id==b.dataset.o);editScroll=0;tab('edit')});
  el.querySelectorAll('[data-pv]').forEach(b=>b.onclick=()=>{cur=Q.find(q=>q.id==b.dataset.pv);openPreview('list')});
@@ -79,7 +79,7 @@ function renderEdit(){const el=$('#tab-edit');if(!cur){el.innerHTML='<div class=
  const fill=()=>{const cat=$('#aCat').value;$('#aItem').innerHTML=S.items.filter(i=>i.cat==cat).map(i=>`<option value="${i.id}">${esc(i.name)}（${esc(i.unit)}，$${fmt(priceOf(i))}）</option>`).join('')+'<option value="">（自訂工項）</option>'};
  $('#aCat').onchange=fill;fill();
  $('#aAdd').onclick=()=>{const cat=$('#aCat').value,it=S.items.find(i=>i.id==$('#aItem').value);
-  q.lines.push(it?{id:uid(),cat,name:it.name,unit:it.unit,qty:1,price:priceOf(it),area:'',note:''}:{id:uid(),cat,name:'',unit:'式',qty:1,price:0,area:'',note:''});save();drawLines();toast('已加入')};
+  q.lines.push(it?{id:uid(),cat,name:it.name,unit:it.unit,qty:1,price:priceOf(it),area:'',note:''}:{id:uid(),cat,name:'',unit:'',qty:1,price:0,area:'',note:''});save();drawLines();toast('已加入')};
  el.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=()=>{const k=inp.dataset.f;if(k.startsWith('c.'))q.c[k.slice(2)]=inp.value;else q[k]=inp.value;save();drawTot()});
  $('#taxMode').onchange=e=>{q.taxMode=e.target.value;save();drawTot()};
  $('#cDate').onclick=e=>datePick(e.target,v=>{q.c.date=v;save()});$('#cDone').onclick=e=>datePick(e.target,v=>{q.completion=v;save()});
@@ -88,7 +88,7 @@ function drawTot(){const t=calc(cur);$('#tot').innerHTML=`合計 $${fmt(t.total)
 function drawLines(){const q=cur,el=$('#lines');let h='';
  CATS.forEach(([k,c])=>{const ls=q.lines.filter(l=>l.cat==c);if(!ls.length)return;h+=`<div class="cat">${k}、${c}　<span style="float:right">$${fmt(calc(q).sub[c])}</span></div>`;
   ls.forEach((l,i)=>{h+=`<div class="line" data-id="${l.id}"><div class="t"><span>${i+1}. </span><span class="row"><button data-up>↑</button><button data-down>↓</button><button class="danger" data-del>刪除</button></span></div>
-  <label>內容</label><input data-k="name" value="${esc(l.name)}"><div class="grid3"><div><label>區域</label><select data-s="area">${selOpts(AREAS,l.area,true)}</select></div><div><label>數量</label><input data-k="qty" type="number" inputmode="decimal" step="any" value="${esc(l.qty)}"></div><div><label>單位</label><select data-s="unit">${selOpts(UNITS,l.unit)}</select></div></div>
+  <label>內容</label><input data-k="name" value="${esc(l.name)}"><div class="grid3"><div><label>區域</label><select data-s="area">${selOpts(AREAS,l.area,true)}</select></div><div><label>數量</label><input data-k="qty" type="number" inputmode="decimal" step="any" value="${esc(l.qty)}"></div><div><label>單位</label><select data-s="unit">${selOpts(UNITS,l.unit,true)}</select></div></div>
   <div class="grid2"><div><label>單價</label><input data-k="price" type="number" inputmode="decimal" step="any" value="${esc(l.price)}"></div><div><label>小計</label><input disabled data-sub value="${fmt(n(l.qty)*n(l.price))}"></div></div><label>備註</label><input data-k="note" value="${esc(l.note)}"></div>`})});
  el.innerHTML=h||'<p class="muted">尚未加入工項</p>';
  el.querySelectorAll('.line').forEach(d=>{const l=q.lines.find(x=>x.id==d.dataset.id);
@@ -100,7 +100,7 @@ function drawLines(){const q=cur,el=$('#lines');let h='';
  drawTot();}
 // ===== settings
 let coEdit=false,coDraftLogo='';
-let defEdit=false;
+let defEdit=false;const openCats=new Set();
 function renderSettings(){const el=$('#tab-settings'),co=S.company;const G=(k,l,v)=>`<div><label>${l}</label><input data-s="${k}" value="${esc(v)}"></div>`;
  const CF=[['name','公司名稱'],['contact','聯絡人'],['phone','公司電話'],['mobile','行動電話'],['fax','FAX'],['email','Email'],['address','公司地址']];
  const coHtml=coEdit?`<div class="card"><h2>公司資料（編輯中）</h2>${CF.map(([k,l])=>`<div><label>${l}</label><input data-co="${k}" value="${esc(co[k])}"></div>`).join('')}
@@ -110,7 +110,7 @@ function renderSettings(){const el=$('#tab-settings'),co=S.company;const G=(k,l,
  el.innerHTML=`${coHtml}
  ${defEdit?`<div class="card"><h2>報價單預設值（編輯中）</h2><label>預設稅率 %</label><input data-d="taxRate" type="number" inputmode="decimal" value="${esc(S.taxRate)}"><label>付款條件</label><input data-d="payTerms" value="${esc(S.payTerms)}"><label>備註</label><textarea data-d="notes" style="min-height:110px">${esc(S.notes)}</textarea><div class="row" style="margin-top:10px"><button class="primary" id="dSave">儲存</button><button id="dCancel">取消</button></div>`
  :`<div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">報價單預設值</h2><button id="dEditBtn">編輯</button></div><table class="items" style="margin-top:8px"><tr><td class="muted" style="width:6em">預設稅率</td><td>${n(S.taxRate)}%</td></tr><tr><td class="muted">付款條件</td><td>${esc(S.payTerms)||'—'}</td></tr><tr><td class="muted">備註</td><td style="white-space:pre-wrap">${esc(S.notes)||'—'}</td></tr></table>`}<p class="muted">稅率會即時套用到所有「含稅」報價單；付款條件與備註只套用到之後新增的報價單。</p></div>
- <div class="card"><h2>工項資料庫</h2><p class="muted">單價預設 = 工班成本 ×（1＋利潤率%）</p><label>類別</label><select id="sCat">${CATS.map(([k,c])=>`<option value="${c}">${k}、${c}</option>`).join('')}</select><div id="sItems"></div><button id="sAdd" style="width:100%;margin-top:8px">＋ 新增工項</button></div>
+ <div class="card"><h2>工項資料庫</h2><p class="muted">點類別展開，點工項查看或修改完整內容。單價預設 = 工班成本 ×（1＋利潤率%）</p><div id="sItems"></div></div>
  <div class="card"><h2>備份</h2><div class="row"><button id="exp">匯出備份 JSON</button><button id="imp">匯入備份</button><input type="file" id="impf" accept=".json,application/json" hidden><button class="danger" id="rst">還原預設工項</button></div></div>`;
  el.querySelectorAll('[data-s]').forEach(i=>i.oninput=()=>{const p=i.dataset.s.split('.');if(p.length==2)S[p[0]][p[1]]=i.value;else S[p[0]]=p[0]=='taxRate'?n(i.value):i.value;save()});
  if(defEdit){$('#dSave').onclick=()=>{el.querySelectorAll('[data-d]').forEach(i=>S[i.dataset.d]=i.dataset.d=='taxRate'?n(i.value):i.value);save();defEdit=false;renderSettings();toast('已儲存')};$('#dCancel').onclick=()=>{defEdit=false;renderSettings()}}else $('#dEditBtn').onclick=()=>{defEdit=true;renderSettings()};
@@ -119,10 +119,23 @@ function renderSettings(){const el=$('#tab-settings'),co=S.company;const G=(k,l,
  if(coEdit)$('#logo').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,300/img.width);c.width=img.width*s;c.height=img.height*s;c.getContext('2d').drawImage(img,0,0,c.width,c.height);coDraftLogo=c.toDataURL('image/png');keepDraft()};img.src=r.result};r.readAsDataURL(f)};
  if($('#rmLogo'))$('#rmLogo').onclick=()=>{coDraftLogo='';keepDraft()};
  const keepDraft=()=>{const v={};el.querySelectorAll('[data-co]').forEach(i=>v[i.dataset.co]=i.value);renderSettings();el.querySelectorAll('[data-co]').forEach(i=>i.value=v[i.dataset.co])};
- const draw=()=>{const cat=$('#sCat').value;$('#sItems').innerHTML=S.items.filter(i=>i.cat==cat).map(i=>`<div class="line" data-id="${i.id}"><input data-k="name" value="${esc(i.name)}" placeholder="工項名稱"><div class="grid3"><div><label>單位</label><input data-k="unit" value="${esc(i.unit)}"></div><div><label>工班成本</label><input data-k="cost" type="number" inputmode="decimal" value="${esc(i.cost)}"></div><div><label>利潤率%</label><input data-k="margin" type="number" inputmode="decimal" value="${esc(i.margin)}"></div></div><div class="row" style="margin-top:4px"><span class="muted" style="flex:1">單價 $<b data-p>${fmt(priceOf(i))}</b></span><button class="danger" data-del>刪除</button></div><input data-k="note" value="${esc(i.note)}" placeholder="預設備註" style="margin-top:4px"></div>`).join('');
-  $('#sItems').querySelectorAll('.line').forEach(d=>{const it=S.items.find(x=>x.id==d.dataset.id);d.querySelectorAll('[data-k]').forEach(i=>i.oninput=()=>{it[i.dataset.k]=i.value;d.querySelector('[data-p]').textContent=fmt(priceOf(it));save()});d.querySelector('[data-del]').onclick=()=>{if(confirm('刪除此工項？')){S.items=S.items.filter(x=>x!==it);save();draw()}}})};
- $('#sCat').onchange=draw;draw();
- $('#sAdd').onclick=()=>{S.items.push({id:uid(),cat:$('#sCat').value,name:'新工項',unit:'式',cost:0,margin:20,note:''});save();draw()};
+ const draw=()=>{$('#sItems').innerHTML=CATS.map(([k,c])=>{const its=S.items.filter(i=>i.cat==c);return`<details data-cat="${c}" ${openCats.has(c)?'open':''}><summary>${k}、${c}<span class="muted">（${its.length}）</span></summary>${its.map(i=>`<div class="irow" data-id="${i.id}"><span>${esc(i.name)}</span><span class="muted">${esc(i.unit)}　›</span></div>`).join('')}<button class="addi" data-add="${c}">＋ 新增工項</button></details>`}).join('');
+  $('#sItems').querySelectorAll('details').forEach(d=>d.ontoggle=()=>d.open?openCats.add(d.dataset.cat):openCats.delete(d.dataset.cat));
+  $('#sItems').querySelectorAll('.irow').forEach(r=>r.onclick=()=>itemModal(S.items.find(x=>x.id==r.dataset.id)));
+  $('#sItems').querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>itemModal(null,b.dataset.add))};
+ const itemModal=(it,cat)=>{const isNew=!it,d=it?{...it}:{id:uid(),cat,name:'',unit:'',cost:0,margin:20,note:''};const ov=document.createElement('div');ov.className='mov';
+  ov.innerHTML=`<div class="mbox"><h2>${isNew?'新增工項':'工項內容'}</h2><label>類別</label><select data-m="cat">${CATS.map(([k,c])=>`<option value="${c}"${c==d.cat?' selected':''}>${k}、${c}</option>`).join('')}</select>
+  <label>工項名稱</label><input data-m="name" value="${esc(d.name)}"><div class="grid3"><div><label>單位</label><select data-ms="unit">${selOpts(UNITS,d.unit,true)}</select></div><div><label>工班成本</label><input data-m="cost" type="number" inputmode="decimal" value="${esc(d.cost)}"></div><div><label>利潤率%</label><input data-m="margin" type="number" inputmode="decimal" value="${esc(d.margin)}"></div></div>
+  <p class="muted">預設單價 $<b data-p>${fmt(priceOf(d))}</b></p><label>備註</label><textarea data-m="note">${esc(d.note)}</textarea>
+  <div class="row" style="margin-top:12px"><button class="primary" data-sv style="flex:1">儲存</button><button data-cc style="flex:1">取消</button>${isNew?'':'<button class="danger" data-dl style="flex:1">刪除</button>'}</div></div>`;
+  document.body.appendChild(ov);ov.querySelectorAll('[data-m]').forEach(i=>i.oninput=i.onchange=()=>{d[i.dataset.m]=i.value;ov.querySelector('[data-p]').textContent=fmt(priceOf(d))});
+  bindSel(ov.querySelector('[data-ms]'),()=>d.unit,v=>d.unit=v);
+  ov.querySelector('[data-cc]').onclick=()=>ov.remove();
+  ov.querySelector('[data-sv]').onclick=()=>{if(!d.name.trim()){alert('請輸入工項名稱');return}if(isNew)S.items.push(d);else Object.assign(it,d);openCats.add(d.cat);save();ov.remove();draw();toast('已儲存')};
+  if(!isNew)ov.querySelector('[data-dl]').onclick=()=>{if(confirm('刪除此工項？')){S.items=S.items.filter(x=>x!==it);save();ov.remove();draw()}}};
+
+ draw();
+
  $('#exp').onclick=()=>{const b=new Blob([JSON.stringify({settings:S,quotes:Q},null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`報價單備份_${today().replace(/\//g,'')}.json`;a.click()};
  $('#imp').onclick=()=>$('#impf').click();
  $('#impf').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!d.settings)throw 0;S=d.settings;Q=d.quotes||[];cur=null;save();renderSettings();toast('匯入完成')}catch{alert('檔案格式錯誤')}})};
