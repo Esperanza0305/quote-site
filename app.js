@@ -173,7 +173,7 @@ function coverPage(q){const co=S.company,t=calc(q);let rows='';
 function detailPages(q,startNo){const host=document.createElement('div');host.style.cssText='position:absolute;left:-9999px;top:0';document.body.appendChild(host);
  const head=`<colgroup><col style="width:6%"><col style="width:6%"><col style="width:9%"><col style="width:30%"><col style="width:7%"><col style="width:6%"><col style="width:11%"><col style="width:12%"><col style="width:13%"></colgroup><tr class="lb b"><td class="c">項目</td><td class="c">編號</td><td class="c">區域</td><td>內容</td><td class="c">數量</td><td class="c">單位</td><td class="c">單價</td><td class="c">小計</td><td>備註</td></tr>`;
  const rows=[];const t=calc(q);
- CATS.forEach(([k,c])=>{const ls=q.lines.filter(l=>l.cat==c);if(!ls.length)return;rows.push(`<tr class="pk b"><td>${k}</td><td></td><td></td><td>${c}</td><td></td><td></td><td></td><td></td><td></td></tr>`);
+ CATS.forEach(([k,c])=>{const ls=q.lines.filter(l=>l.cat==c);if(!ls.length)return;rows.push(`<tr class="pk b"><td colspan="9" class="c" style="letter-spacing:1px">${k}、${c}</td></tr>`);
   ls.forEach((l,i)=>rows.push(`<tr><td></td><td class="c">${i+1}</td><td>${esc(l.area)}</td><td>${esc(l.name)}</td><td class="c">${esc(l.qty)}</td><td class="c">${esc(l.unit)}</td><td>${money(n(l.price))}</td><td>${money(n(l.qty)*n(l.price))}</td><td style="font-size:10.5px;line-height:13px">${esc(l.note)}</td></tr>`));
   rows.push(`<tr class="nb"><td colspan="6"></td><td class="r">小計</td><td>${money(t.sub[c])}</td><td></td></tr><tr class="nb"><td colspan="9" style="height:12px"></td></tr>`)});
  if(!rows.length)rows.push('<tr><td colspan="9" class="c">（尚無工項）</td></tr>');
