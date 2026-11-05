@@ -8,11 +8,12 @@
 <link rel="stylesheet" href="style.css">
 </head><body>
 <header class="top"><h1>工程報價單</h1>
-<nav><button data-tab="list" class="on">報價單</button><button data-tab="edit">編輯</button><button data-tab="preview">預覽</button><button data-tab="settings">設定</button></nav></header>
+<nav><button data-tab="list" class="on">報價單</button><button data-tab="edit">編輯</button><button data-tab="settings">設定</button></nav></header>
 <main>
 <section id="tab-list"></section>
 <section id="tab-edit" hidden></section>
 <section id="tab-preview" hidden>
+ <div class="bar"><button id="pvBack">‹ 返回</button><b>報價單預覽</b></div>
  <div id="pages" class="pages"></div>
  <div class="bar" style="flex-direction:column;align-items:stretch;padding-bottom:20px"><button id="btnPdf" class="primary" style="padding:14px;font-size:17px">匯出／分享 PDF</button><span id="pdfMsg" class="muted" style="text-align:center"></span></div></section>
 <section id="tab-settings" hidden></section>
@@ -21,4 +22,5 @@
 <script src="vendor/html2canvas.min.js"></script>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="app.js"></script>
+<script>document.getElementById("pvBack").onclick=()=>tab(pvFrom)</script>
 </body></html>
